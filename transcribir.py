@@ -2,6 +2,7 @@ import argparse
 import subprocess
 from pathlib import Path
 import numpy as np
+import ollama
 from faster_whisper import WhisperModel
 
 
@@ -32,8 +33,23 @@ def transcribir(audio_path: str, formato: str = "txt", modelo: str = "base"):
     else:
         contenido = texto
 
+    print("Corrigiendo texto con ollama...")
+    contenido = limpiar_texto(contenido)
+
     salida.write_text(contenido, encoding="utf-8")
     print(f"Transcripción guardada en: {salida}")
+
+
+def limpiar_texto(texto: str, modelo: str = "llama3.2:latest") -> str:
+    prompt = (
+        "Eres un corrector de textos en español. "
+        "Corrige la ortografía, puntuación y organiza en párrafos el siguiente texto transcrito de audio. "
+        "No agregues ni quites información, solo corrige y organiza. "
+        "Devuelve únicamente el texto corregido, sin comentarios ni explicaciones.\n\n"
+        f"{texto}"
+    )
+    respuesta = ollama.chat(model=modelo, messages=[{"role": "user", "content": prompt}])
+    return respuesta.message.content
 
 
 if __name__ == "__main__":
