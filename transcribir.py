@@ -202,6 +202,7 @@ def organizar_parrafos(texto: str, modelo: str = "llama3.2:latest") -> str:
     return respuesta.message.content
 
 
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Transcribe audio a texto con faster-whisper")
     parser.add_argument("audio", help="Ruta del archivo de audio (.mp3, .wav, .ogg, etc.)")
     parser.add_argument("--formato", choices=["txt", "md"], default="txt", help="Formato de salida (default: txt)")
