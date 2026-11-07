@@ -42,10 +42,11 @@ def validar_ruta(audio_path: str) -> Path:
 
 
 FILTROS_VOZ = ",".join([
-    "highpass=f=80",
-    "lowpass=f=8000",
-    "afftdn=nf=-25",
-    "acompressor=threshold=0.05:ratio=4:attack=5:release=50",
+    "highpass=f=100",
+    "lowpass=f=4000",
+    "afftdn=nf=-40:nt=w",
+    "anlmdn=s=0.0001:p=0.002:r=0.002",
+    "acompressor=threshold=0.02:ratio=6:attack=5:release=50:makeup=2",
     "volume=2.0",
     "dynaudnorm=p=0.9:m=100",
 ])
