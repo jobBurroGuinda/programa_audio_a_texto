@@ -3,7 +3,6 @@ import logging
 import subprocess
 from pathlib import Path
 import numpy as np
-import ollama
 from df.enhance import enhance, init_df, load_audio, save_audio
 from faster_whisper import WhisperModel
 
@@ -15,8 +14,8 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 FORMATOS_AUDIO = {".ogg", ".mp3", ".wav", ".m4a", ".flac", ".aac", ".wma"}
-MAX_CHARS_LLM = 8000
 ATEN_LIM_DB = 15
+PAUSA_PARRAFO = 2.0
 
 
 def validar_ruta(audio_path: str) -> Path:
@@ -127,10 +126,10 @@ def transcribir(audio_path: str, formato: str = "txt", modelo: str = "medium") -
 
     Flujo de ejecución:
         1. Valida la ruta del archivo de audio.
-        2. Mejora la calidad del audio con ffmpeg.
+        2. Mejora la calidad del audio con DeepFilterNet.
         3. Decodifica el audio a numpy array.
         4. Transcribe con Whisper (faster-whisper).
-        5. Corrige ortografía y organiza párrafos con LLaMA via Ollama.
+        5. Agrupa segmentos en párrafos por pausas de silencio.
         6. Guarda el resultado en el formato indicado.
 
     :param audio_path: Ruta al archivo de audio de entrada.
@@ -153,54 +152,25 @@ def transcribir(audio_path: str, formato: str = "txt", modelo: str = "medium") -
     segments, info = model.transcribe(audio)
     log.info("Idioma detectado: %s (probabilidad: %.2f)", info.language, info.language_probability)
 
-    texto = "\n".join(seg.text.strip() for seg in segments)
-    log.debug("Transcripción cruda: %d caracteres", len(texto))
+    parrafos = []
+    parrafo_actual = []
+    ultimo_fin = None
+    for seg in segments:
+        if ultimo_fin is not None and (seg.start - ultimo_fin) >= PAUSA_PARRAFO:
+            parrafos.append(" ".join(parrafo_actual))
+            parrafo_actual = []
+        parrafo_actual.append(seg.text.strip())
+        ultimo_fin = seg.end
+    if parrafo_actual:
+        parrafos.append(" ".join(parrafo_actual))
+
+    texto = "\n\n".join(parrafos)
+    log.debug("Transcripción: %d párrafos, %d caracteres", len(parrafos), len(texto))
 
     salida = ruta.with_suffix(f".{formato}")
-
-    if formato == "md":
-        contenido = f"# Transcripción: {ruta.name}\n\n{texto}\n"
-    else:
-        contenido = texto
-
-    contenido = limpiar_texto(contenido)
-
+    contenido = f"# Transcripción: {ruta.name}\n\n{texto}\n" if formato == "md" else texto
     salida.write_text(contenido, encoding="utf-8")
     log.info("Transcripción guardada en: %s", salida)
-
-
-def limpiar_texto(texto: str, modelo: str = "llama3.2:latest") -> str:
-    """
-    Corrige la ortografía y organiza en párrafos el texto transcrito usando LLaMA via Ollama.
-
-    El texto se trunca a MAX_CHARS_LLM caracteres antes de enviarse al modelo
-    para evitar consumo ilimitado de recursos.
-
-    :param texto: Texto crudo resultado de la transcripción.
-    :type texto: str
-    :param modelo: Nombre del modelo Ollama a usar (default: llama3.2:latest).
-    :type modelo: str
-    :returns: Texto corregido y organizado en párrafos.
-    :rtype: str
-    :author: Job Adolfo Salinas Hernández
-    """
-    log.info("Corrigiendo texto con ollama (modelo: %s)...", modelo)
-    texto = texto[:MAX_CHARS_LLM]
-    log.debug("Longitud del texto enviado al LLM: %d caracteres", len(texto))
-    prompt = (
-        "Eres un corrector de textos en español. "
-        "Corrige la ortografía, puntuación y organiza en párrafos el siguiente texto transcrito de audio. "
-        "No agregues ni quites información, solo corrige y organiza. "
-        "Devuelve únicamente el texto corregido, sin comentarios ni explicaciones.\n\n"
-        f"{texto}"
-    )
-    respuesta = ollama.chat(
-        model=modelo,
-        messages=[{"role": "user", "content": prompt}],
-        options={"num_predict": 4096},
-    )
-    log.info("Corrección completada.")
-    return respuesta.message.content
 
 
 if __name__ == "__main__":

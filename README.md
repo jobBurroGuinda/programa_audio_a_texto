@@ -2,7 +2,7 @@
 
 **Autor:** Job Adolfo Salinas Hernández
 
-Transcribe archivos de audio a texto en formato `.txt` o `.md` usando **Whisper** (IA de transcripción), mejora la calidad del audio con **DeepFilterNet** (eliminación de ruido) y opcionalmente corrige ortografía y organiza párrafos con **LLaMA 3.2** via Ollama. Todo funciona **100% offline** después de la primera ejecución.
+Transcribe archivos de audio a texto en formato `.txt` o `.md` usando **Whisper** (IA de transcripción) y mejora la calidad del audio con **DeepFilterNet** (eliminación de ruido). Los segmentos se agrupan automáticamente en párrafos por pausas de silencio. Todo funciona **100% offline** después de la primera ejecución.
 
 ---
 
@@ -28,7 +28,7 @@ Audio (.ogg / .mp3 / .wav / .m4a / .flac / .aac / .wma)
         ↓
    Whisper (faster-whisper) transcribe el audio a texto
         ↓
-   LLaMA 3.2 (ollama) corrige ortografía y organiza párrafos
+   Segmentos agrupados en párrafos por pausas de silencio
         ↓
    Archivo de salida (.txt o .md)
 ```
@@ -50,14 +50,6 @@ winget install --id Gyan.FFmpeg
 ```
 Después de instalarlo, **reinicia la terminal** para que quede disponible en el PATH.
 
-### 3. Ollama
-Necesario para la corrección de texto. Descárgalo desde [ollama.com](https://ollama.com) e instálalo.
-
-Luego descarga el modelo LLaMA 3.2:
-```bash
-ollama pull llama3.2:latest
-```
-
 ---
 
 ## Instalación
@@ -75,7 +67,6 @@ Esto instala:
 | `faster-whisper` | Transcripción de audio a texto con el modelo Whisper de OpenAI |
 | `ffmpeg-python` | Interfaz Python para ffmpeg |
 | `numpy` | Procesamiento del audio en memoria |
-| `ollama` | Cliente Python para comunicarse con Ollama localmente |
 | `deepfilternet` | Eliminación de ruido de fondo preservando la voz |
 | `torch==2.1.0` | Backend de deep learning requerido por DeepFilterNet |
 | `torchaudio==2.1.0` | Procesamiento de audio con torch |
@@ -85,10 +76,7 @@ Esto instala:
 
 ## Uso
 
-Asegúrate de que Ollama esté corriendo antes de ejecutar:
-```bash
-ollama serve
-```
+Asegúrate de que el entorno virtual esté activo antes de ejecutar.
 
 Hay dos formas de ejecutar el script:
 
@@ -140,7 +128,6 @@ C:\Users\<tu_usuario>\.cache\huggingface\hub\
 |---|---|---|
 | Whisper (modelo) | Descarga ~150MB de Hugging Face | ✅ Offline |
 | ffmpeg | Instalación local | ✅ Offline |
-| Ollama + LLaMA 3.2 | Descarga ~2GB del modelo | ✅ Offline |
 | DeepFilterNet | Descarga ~30MB del modelo | ✅ Offline |
 
 ---
@@ -149,7 +136,7 @@ C:\Users\<tu_usuario>\.cache\huggingface\hub\
 
 - Ningún audio ni texto se envía a internet o a la nube.
 - Ningún modelo de IA se entrena con tus datos.
-- Whisper y LLaMA 3.2 corren completamente en tu máquina.
+- Whisper y DeepFilterNet corren completamente en tu máquina.
 - Una vez descargados los modelos, el programa funciona 100% offline y sin conexión a ningún servidor externo.
 
 ---
