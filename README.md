@@ -1,5 +1,7 @@
 # Audio a Texto
 
+**Autor:** Job Adolfo Salinas Hernández
+
 Transcribe archivos de audio a texto en formato `.txt` o `.md` usando **Whisper** (IA de transcripción), mejora la calidad del audio con **DeepFilterNet** (eliminación de ruido) y opcionalmente corrige ortografía y organiza párrafos con **LLaMA 3.2** via Ollama. Todo funciona **100% offline** después de la primera ejecución.
 
 ---
