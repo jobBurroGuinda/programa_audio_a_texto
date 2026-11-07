@@ -1,6 +1,6 @@
 # Audio a Texto
 
-Transcribe archivos de audio a texto en formato `.txt` o `.md` usando **Whisper** (IA de transcripción) y opcionalmente corrige ortografía y organiza párrafos con **LLaMA 3.2** via Ollama. Todo funciona **100% offline** después de la primera ejecución.
+Transcribe archivos de audio a texto en formato `.txt` o `.md` usando **Whisper** (IA de transcripción), mejora la calidad del audio con **DeepFilterNet** (eliminación de ruido) y opcionalmente corrige ortografía y organiza párrafos con **LLaMA 3.2** via Ollama. Todo funciona **100% offline** después de la primera ejecución.
 
 ---
 
@@ -8,16 +8,21 @@ Transcribe archivos de audio a texto en formato `.txt` o `.md` usando **Whisper*
 
 - Transcribir grabaciones de voz, reuniones, entrevistas, podcasts, etc.
 - Obtener el texto limpio, con ortografía corregida y organizado en párrafos.
-- Soporta archivos `.ogg`, `.mp3`, `.wav` y cualquier formato compatible con ffmpeg.
+- Soporta archivos `.ogg`, `.mp3`, `.wav`, `.m4a`, `.flac`, `.aac`, `.wma` y cualquier formato compatible con ffmpeg.
+- Reduce ruido de fondo (viento, ambiente) preservando la voz con DeepFilterNet.
 
 ---
 
 ## ¿Cómo funciona?
 
 ```
-Audio (.ogg / .mp3 / .wav)
+Audio (.ogg / .mp3 / .wav / .m4a / .flac / .aac / .wma)
         ↓
-   ffmpeg decodifica el audio a formato raw
+   ffmpeg convierte a WAV 48kHz mono
+        ↓
+   DeepFilterNet elimina ruido de fondo (atten_lim_db=15)
+        ↓
+   ffmpeg convierte audio mejorado a MP3
         ↓
    Whisper (faster-whisper) transcribe el audio a texto
         ↓
@@ -30,8 +35,8 @@ Audio (.ogg / .mp3 / .wav)
 
 ## Requisitos previos
 
-### 1. Python 3.8 o superior
-Verifica tu versión:
+### 1. Python 3.10
+Este proyecto requiere **Python 3.10** por compatibilidad con DeepFilterNet, torch y torchaudio. Verifica tu versión:
 ```bash
 python --version
 ```
@@ -55,8 +60,10 @@ ollama pull llama3.2:latest
 
 ## Instalación
 
-Clona o descarga el proyecto y ejecuta:
+Clona o descarga el proyecto, crea un entorno virtual con Python 3.10 e instala las dependencias:
 ```bash
+py -3.10 -m venv venv
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
@@ -67,13 +74,18 @@ Esto instala:
 | `ffmpeg-python` | Interfaz Python para ffmpeg |
 | `numpy` | Procesamiento del audio en memoria |
 | `ollama` | Cliente Python para comunicarse con Ollama localmente |
+| `deepfilternet` | Eliminación de ruido de fondo preservando la voz |
+| `torch==2.1.0` | Backend de deep learning requerido por DeepFilterNet |
+| `torchaudio==2.1.0` | Procesamiento de audio con torch |
+| `soundfile` | Lectura/escritura de archivos WAV |
 
 ---
 
 ## Uso
 
-Antes de ejecutar, asegúrate de que Ollama esté corriendo:
+Activa el entorno virtual y asegúrate de que Ollama esté corriendo:
 ```bash
+venv\Scripts\activate
 ollama serve
 ```
 
@@ -101,9 +113,9 @@ El archivo de salida se guarda en la **misma carpeta que el audio**, con el mism
 | Modelo | Tamaño | Precisión | Velocidad |
 |--------|--------|-----------|-----------|
 | `tiny` | ~75 MB | Básica | Muy rápido |
-| `base` | ~150 MB | Buena | Rápido (**por defecto**) |
+| `base` | ~150 MB | Buena | Rápido |
 | `small` | ~500 MB | Mejor | Moderado |
-| `medium` | ~1.5 GB | Alta | Lento |
+| `medium` | ~1.5 GB | Alta | Lento (**por defecto**) |
 | `large` | ~3 GB | Máxima | Muy lento |
 
 Los modelos se descargan automáticamente la primera vez y quedan guardados en:
@@ -120,6 +132,7 @@ C:\Users\<tu_usuario>\.cache\huggingface\hub\
 | Whisper (modelo) | Descarga ~150MB de Hugging Face | ✅ Offline |
 | ffmpeg | Instalación local | ✅ Offline |
 | Ollama + LLaMA 3.2 | Descarga ~2GB del modelo | ✅ Offline |
+| DeepFilterNet | Descarga ~30MB del modelo | ✅ Offline |
 
 ---
 
