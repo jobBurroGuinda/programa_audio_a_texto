@@ -120,7 +120,7 @@ def cargar_audio(ruta: Path, sample_rate: int = 16000) -> np.ndarray:
     return np.frombuffer(resultado.stdout, dtype=np.int16).astype(np.float32) / 32768.0
 
 
-def transcribir(audio_path: str, formato: str = "txt", modelo: str = "medium") -> None:
+def transcribir(audio_path: str, formato: str = "txt", modelo: str = "small") -> None:
     """
     Orquesta el proceso completo de transcripción de audio a texto.
 
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Transcribe audio a texto con faster-whisper")
     parser.add_argument("audio", help="Ruta del archivo de audio (.mp3, .wav, .ogg, etc.)")
     parser.add_argument("--formato", choices=["txt", "md"], default="txt", help="Formato de salida (default: txt)")
-    parser.add_argument("--modelo", default="medium", help="Modelo Whisper: tiny, base, small, medium, large (default: medium)")
+    parser.add_argument("--modelo", default="small", help="Modelo Whisper: tiny, base, small, medium, large (default: small)")
     args = parser.parse_args()
 
     transcribir(args.audio, args.formato, args.modelo)

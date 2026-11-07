@@ -111,8 +111,8 @@ El archivo de salida se guarda en la **misma carpeta que el audio**, con el mism
 |--------|--------|-----------|-----------|
 | `tiny` | ~75 MB | Básica | Muy rápido |
 | `base` | ~150 MB | Buena | Rápido |
-| `small` | ~500 MB | Mejor | Moderado |
-| `medium` | ~1.5 GB | Alta | Lento (**por defecto**) |
+| `small` | ~500 MB | Mejor | Moderado (**por defecto**) |
+| `medium` | ~1.5 GB | Alta | Lento |
 | `large` | ~3 GB | Máxima | Muy lento |
 
 Los modelos se descargan automáticamente la primera vez y quedan guardados en:
