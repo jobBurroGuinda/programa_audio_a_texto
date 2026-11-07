@@ -1,14 +1,14 @@
 import argparse
 from pathlib import Path
 from faster_whisper import WhisperModel
-from pydub import AudioSegment
+import ffmpeg
 
 
 def convertir_ogg_a_mp3(audio_path: str) -> str:
     origen = Path(audio_path)
     destino = origen.with_suffix(".mp3")
     print(f"Convirtiendo {origen.name} a mp3...")
-    AudioSegment.from_ogg(str(origen)).export(str(destino), format="mp3")
+    ffmpeg.input(str(origen)).output(str(destino)).run(quiet=True, overwrite_output=True)
     print(f"Conversión completada: {destino.name}")
     return str(destino)
 
