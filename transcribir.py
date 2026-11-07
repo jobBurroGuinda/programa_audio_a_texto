@@ -148,9 +148,9 @@ def transcribir(audio_path: str, formato: str = "txt", modelo: str = "small") ->
     log.info("Cargando modelo Whisper: %s", modelo)
     model = WhisperModel(modelo, device="cpu", compute_type="int8")
 
-    log.info("Transcribiendo audio...")
-    segments, info = model.transcribe(audio)
-    log.info("Idioma detectado: %s (probabilidad: %.2f)", info.language, info.language_probability)
+    log.info("Transcribiendo audio en español...")
+    segments, info = model.transcribe(audio, language="es", task="transcribe")
+    log.info("Idioma: %s (probabilidad: %.2f)", info.language, info.language_probability)
 
     parrafos = []
     parrafo_actual = []
