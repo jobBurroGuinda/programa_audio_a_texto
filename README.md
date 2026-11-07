@@ -89,6 +89,12 @@ venv\Scripts\activate
 ollama serve
 ```
 
+> Si cerraste la terminal, siempre debes activar el entorno virtual antes de ejecutar el script:
+> ```bash
+> cd C:\ruta\al\proyecto\programa_audio_a_texto
+> venv\Scripts\activate
+> ```
+
 ### Transcribir a `.txt` (por defecto)
 ```bash
 python transcribir.py "C:\ruta\al\audio.ogg"
