@@ -1,9 +1,22 @@
 import argparse
 from pathlib import Path
 from faster_whisper import WhisperModel
+from pydub import AudioSegment
+
+
+def convertir_ogg_a_mp3(audio_path: str) -> str:
+    origen = Path(audio_path)
+    destino = origen.with_suffix(".mp3")
+    print(f"Convirtiendo {origen.name} a mp3...")
+    AudioSegment.from_ogg(str(origen)).export(str(destino), format="mp3")
+    print(f"Conversión completada: {destino.name}")
+    return str(destino)
 
 
 def transcribir(audio_path: str, formato: str = "txt", modelo: str = "base"):
+    if Path(audio_path).suffix.lower() == ".ogg":
+        audio_path = convertir_ogg_a_mp3(audio_path)
+
     model = WhisperModel(modelo, device="cpu", compute_type="int8")
     segments, info = model.transcribe(audio_path)
 
@@ -24,7 +37,7 @@ def transcribir(audio_path: str, formato: str = "txt", modelo: str = "base"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Transcribe audio a texto con faster-whisper")
-    parser.add_argument("audio", help="Ruta del archivo de audio")
+    parser.add_argument("audio", help="Ruta del archivo de audio (.mp3, .wav, .ogg, etc.)")
     parser.add_argument("--formato", choices=["txt", "md"], default="txt", help="Formato de salida (default: txt)")
     parser.add_argument("--modelo", default="base", help="Modelo Whisper: tiny, base, small, medium, large (default: base)")
     args = parser.parse_args()
