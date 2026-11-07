@@ -3,6 +3,7 @@ import logging
 import subprocess
 from pathlib import Path
 import numpy as np
+import ollama
 from df.enhance import enhance, init_df, load_audio, save_audio
 from faster_whisper import WhisperModel
 
@@ -16,6 +17,7 @@ log = logging.getLogger(__name__)
 FORMATOS_AUDIO = {".ogg", ".mp3", ".wav", ".m4a", ".flac", ".aac", ".wma"}
 ATEN_LIM_DB = 15
 PAUSA_PARRAFO = 2.0
+MAX_CHARS_LLM = 8000
 
 
 def validar_ruta(audio_path: str) -> Path:
@@ -120,7 +122,7 @@ def cargar_audio(ruta: Path, sample_rate: int = 16000) -> np.ndarray:
     return np.frombuffer(resultado.stdout, dtype=np.int16).astype(np.float32) / 32768.0
 
 
-def transcribir(audio_path: str, formato: str = "txt", modelo: str = "small") -> None:
+def transcribir(audio_path: str, formato: str = "txt", modelo: str = "base") -> None:
     """
     Orquesta el proceso completo de transcripción de audio a texto.
 
@@ -152,32 +154,55 @@ def transcribir(audio_path: str, formato: str = "txt", modelo: str = "small") ->
     segments, info = model.transcribe(audio, language="es", task="transcribe")
     log.info("Idioma: %s (probabilidad: %.2f)", info.language, info.language_probability)
 
-    parrafos = []
-    parrafo_actual = []
-    ultimo_fin = None
-    for seg in segments:
-        if ultimo_fin is not None and (seg.start - ultimo_fin) >= PAUSA_PARRAFO:
-            parrafos.append(" ".join(parrafo_actual))
-            parrafo_actual = []
-        parrafo_actual.append(seg.text.strip())
-        ultimo_fin = seg.end
-    if parrafo_actual:
-        parrafos.append(" ".join(parrafo_actual))
+    texto_crudo = "\n".join(seg.text.strip() for seg in segments)
+    log.debug("Transcripción: %d caracteres", len(texto_crudo))
 
-    texto = "\n\n".join(parrafos)
-    log.debug("Transcripción: %d párrafos, %d caracteres", len(parrafos), len(texto))
+    salida_txt = ruta.with_suffix(".txt")
+    salida_txt.write_text(texto_crudo, encoding="utf-8")
+    log.info("Transcripción original guardada en: %s", salida_txt)
 
-    salida = ruta.with_suffix(f".{formato}")
-    contenido = f"# Transcripción: {ruta.name}\n\n{texto}\n" if formato == "md" else texto
+    texto_organizado = organizar_parrafos(texto_crudo)
+    salida = ruta.with_stem(ruta.stem + "_organizado").with_suffix(f".{formato}")
+    contenido = f"# Transcripción: {ruta.name}\n\n{texto_organizado}\n" if formato == "md" else texto_organizado
     salida.write_text(contenido, encoding="utf-8")
-    log.info("Transcripción guardada en: %s", salida)
+    log.info("Transcripción organizada guardada en: %s", salida)
 
 
-if __name__ == "__main__":
+def organizar_parrafos(texto: str, modelo: str = "llama3.2:latest") -> str:
+    """
+    Organiza el texto transcrito en párrafos usando LLaMA via Ollama.
+    No corrige ni agrega nada, solo organiza el texto en párrafos.
+
+    :param texto: Texto crudo resultado de la transcripción.
+    :type texto: str
+    :param modelo: Nombre del modelo Ollama a usar (default: llama3.2:latest).
+    :type modelo: str
+    :returns: Texto organizado en párrafos.
+    :rtype: str
+    :author: Job Adolfo Salinas Hernández
+    """
+    log.info("Organizando párrafos con ollama (modelo: %s)...", modelo)
+    texto = texto[:MAX_CHARS_LLM]
+    prompt = (
+        "Organiza el siguiente texto en párrafos. "
+        "NO corrijas ortografía. NO agregues palabras. NO quites palabras. "
+        "Usa EXACTAMENTE las mismas palabras del texto original, solo agrupa las oraciones en párrafos con saltos de línea. "
+        "Devuelve únicamente el texto organizado, sin comentarios, sin explicaciones, sin encabezados.\n\n"
+        f"{texto}"
+    )
+    respuesta = ollama.chat(
+        model=modelo,
+        messages=[{"role": "user", "content": prompt}],
+        options={"num_predict": 4096},
+    )
+    log.info("Organización completada.")
+    return respuesta.message.content
+
+
     parser = argparse.ArgumentParser(description="Transcribe audio a texto con faster-whisper")
     parser.add_argument("audio", help="Ruta del archivo de audio (.mp3, .wav, .ogg, etc.)")
     parser.add_argument("--formato", choices=["txt", "md"], default="txt", help="Formato de salida (default: txt)")
-    parser.add_argument("--modelo", default="small", help="Modelo Whisper: tiny, base, small, medium, large (default: small)")
+    parser.add_argument("--modelo", default="base", help="Modelo Whisper: tiny, base, small, medium, large (default: base)")
     args = parser.parse_args()
 
     transcribir(args.audio, args.formato, args.modelo)
