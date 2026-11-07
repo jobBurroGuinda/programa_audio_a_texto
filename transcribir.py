@@ -5,20 +5,37 @@ import numpy as np
 import ollama
 from faster_whisper import WhisperModel
 
+FORMATOS_AUDIO = {".ogg", ".mp3", ".wav", ".m4a", ".flac", ".aac", ".wma"}
+MAX_CHARS_LLM = 8000
 
-def cargar_audio(audio_path: str, sample_rate: int = 16000) -> np.ndarray:
+
+def validar_ruta(audio_path: str) -> Path:
+    ruta = Path(audio_path).resolve()
+    if not ruta.exists():
+        raise FileNotFoundError(f"El archivo no existe: {ruta}")
+    if not ruta.is_file():
+        raise ValueError(f"La ruta no es un archivo: {ruta}")
+    if ruta.suffix.lower() not in FORMATOS_AUDIO:
+        raise ValueError(f"Formato no soportado: {ruta.suffix}. Usa: {', '.join(FORMATOS_AUDIO)}")
+    return ruta
+
+
+def cargar_audio(ruta: Path, sample_rate: int = 16000) -> np.ndarray:
     cmd = [
         "ffmpeg", "-nostdin", "-threads", "0",
-        "-i", audio_path,
+        "-i", str(ruta),
         "-f", "s16le", "-ac", "1", "-acodec", "pcm_s16le",
         "-ar", str(sample_rate), "-",
     ]
-    resultado = subprocess.run(cmd, capture_output=True)
+    resultado = subprocess.run(cmd, capture_output=True, shell=False)
+    if resultado.returncode != 0:
+        raise RuntimeError(f"ffmpeg falló al decodificar el audio: {resultado.stderr.decode()}")
     return np.frombuffer(resultado.stdout, dtype=np.int16).astype(np.float32) / 32768.0
 
 
 def transcribir(audio_path: str, formato: str = "txt", modelo: str = "base"):
-    audio = cargar_audio(audio_path)
+    ruta = validar_ruta(audio_path)
+    audio = cargar_audio(ruta)
     model = WhisperModel(modelo, device="cpu", compute_type="int8")
     segments, info = model.transcribe(audio)
 
@@ -26,10 +43,10 @@ def transcribir(audio_path: str, formato: str = "txt", modelo: str = "base"):
 
     texto = "\n".join(seg.text.strip() for seg in segments)
 
-    salida = Path(audio_path).with_suffix(f".{formato}")
+    salida = ruta.with_suffix(f".{formato}")
 
     if formato == "md":
-        contenido = f"# Transcripción: {Path(audio_path).name}\n\n{texto}\n"
+        contenido = f"# Transcripción: {ruta.name}\n\n{texto}\n"
     else:
         contenido = texto
 
@@ -41,6 +58,7 @@ def transcribir(audio_path: str, formato: str = "txt", modelo: str = "base"):
 
 
 def limpiar_texto(texto: str, modelo: str = "llama3.2:latest") -> str:
+    texto = texto[:MAX_CHARS_LLM]
     prompt = (
         "Eres un corrector de textos en español. "
         "Corrige la ortografía, puntuación y organiza en párrafos el siguiente texto transcrito de audio. "
@@ -48,7 +66,11 @@ def limpiar_texto(texto: str, modelo: str = "llama3.2:latest") -> str:
         "Devuelve únicamente el texto corregido, sin comentarios ni explicaciones.\n\n"
         f"{texto}"
     )
-    respuesta = ollama.chat(model=modelo, messages=[{"role": "user", "content": prompt}])
+    respuesta = ollama.chat(
+        model=modelo,
+        messages=[{"role": "user", "content": prompt}],
+        options={"num_predict": 4096},
+    )
     return respuesta.message.content
 
 
