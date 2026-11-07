@@ -1,10 +1,13 @@
 import argparse
 import logging
 import subprocess
+import warnings
 from pathlib import Path
 import numpy as np
 import ollama
-from df.enhance import enhance, init_df, load_audio, save_audio
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message=".*torchaudio.backend.common.*")
+    from df.enhance import enhance, init_df, load_audio, save_audio
 from faster_whisper import WhisperModel
 
 logging.basicConfig(
