@@ -187,10 +187,16 @@ def organizar_parrafos(texto: str, modelo: str = "llama3.2:latest") -> str:
     log.info("Organizando párrafos con ollama (modelo: %s)...", modelo)
     texto = texto[:MAX_CHARS_LLM]
     prompt = (
-        "Organiza el siguiente texto en párrafos. "
-        "NO corrijas ortografía. NO agregues palabras. NO quites palabras. "
-        "Usa EXACTAMENTE las mismas palabras del texto original, solo agrupa las oraciones en párrafos con saltos de línea. "
-        "Devuelve únicamente el texto organizado, sin comentarios, sin explicaciones, sin encabezados.\n\n"
+        "Eres un editor de textos en español. "
+        "Tu única tarea es agregar puntuación al siguiente texto transcrito de audio: comas, puntos, puntos y coma y puntos y aparte. "
+        "REGLAS ESTRICTAS:\n"
+        "- USA EXACTAMENTE las mismas palabras, en el mismo orden, sin excepción.\n"
+        "- NO agregues palabras nuevas.\n"
+        "- NO elimines palabras.\n"
+        "- NO parafrasees ni reescribas.\n"
+        "- NO agregues títulos, encabezados ni comentarios.\n"
+        "- Separa ideas completas en párrafos con punto y aparte.\n"
+        "- Devuelve ÚNICAMENTE el texto con puntuación, nada más.\n\n"
         f"{texto}"
     )
     respuesta = ollama.chat(
