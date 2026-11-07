@@ -123,6 +123,15 @@ C:\Users\<tu_usuario>\.cache\huggingface\hub\
 
 ---
 
+## Privacidad
+
+- Ningún audio ni texto se envía a internet o a la nube.
+- Ningún modelo de IA se entrena con tus datos.
+- Whisper y LLaMA 3.2 corren completamente en tu máquina.
+- Una vez descargados los modelos, el programa funciona 100% offline y sin conexión a ningún servidor externo.
+
+---
+
 ## Advertencia
 
 Este programa está diseñado para uso personal en archivos de tu propio equipo. Se recomienda no usarlo con rutas de archivo provenientes de fuentes externas o no confiables.
