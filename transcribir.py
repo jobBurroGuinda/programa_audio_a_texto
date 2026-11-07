@@ -46,6 +46,7 @@ FILTROS_VOZ = ",".join([
     "lowpass=f=8000",
     "afftdn=nf=-25",
     "acompressor=threshold=0.05:ratio=4:attack=5:release=50",
+    "volume=2.0",
     "dynaudnorm=p=0.9:m=100",
 ])
 
