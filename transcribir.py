@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 import numpy as np
 import ollama
+from df.enhance import enhance, init_df, load_audio, save_audio
 from faster_whisper import WhisperModel
 
 logging.basicConfig(
@@ -15,6 +16,7 @@ log = logging.getLogger(__name__)
 
 FORMATOS_AUDIO = {".ogg", ".mp3", ".wav", ".m4a", ".flac", ".aac", ".wma"}
 MAX_CHARS_LLM = 8000
+ATEN_LIM_DB = 15
 
 
 def validar_ruta(audio_path: str) -> Path:
@@ -41,43 +43,50 @@ def validar_ruta(audio_path: str) -> Path:
     return ruta
 
 
-FILTROS_VOZ = ",".join([
-    "highpass=f=100",
-    "lowpass=f=4000",
-    "afftdn=nf=-40:nt=w:om=o",
-    "acompressor=threshold=0.02:ratio=6:attack=5:release=50:makeup=2",
-    "volume=2.0",
-    "dynaudnorm=p=0.9:m=100",
-])
-
 
 def mejorar_audio(ruta: Path) -> Path:
     """
-    Mejora la calidad del audio aplicando filtros de voz con ffmpeg.
-
-    Aplica en orden: filtro paso alto (80Hz), filtro paso bajo (8000Hz),
-    reducción de ruido por FFT, compresor de dinámica y normalización de volumen.
-    El resultado se guarda como MP3 con el sufijo '_mejorado'.
+    Mejora la calidad del audio usando DeepFilterNet para eliminar ruido de fondo
+    y realzar la voz. Usa atten_lim_db para controlar la agresividad de la reducción
+    de ruido y preservar la voz. El resultado se guarda como MP3 con el sufijo '_mejorado'.
 
     :param ruta: Ruta al archivo de audio original.
     :type ruta: Path
     :returns: Ruta al archivo de audio mejorado en formato MP3.
     :rtype: Path
-    :raises RuntimeError: Si ffmpeg falla durante el procesamiento.
+    :raises RuntimeError: Si falla durante el procesamiento.
     :author: Job Adolfo Salinas Hernández
     """
-    log.info("Mejorando calidad del audio: %s", ruta.name)
     destino = ruta.with_stem(ruta.stem + "_mejorado").with_suffix(".mp3")
-    cmd = [
-        "ffmpeg", "-nostdin", "-y",
-        "-i", str(ruta),
-        "-af", FILTROS_VOZ,
-        "-ar", "44100", "-ac", "1", "-q:a", "2",
-        str(destino),
-    ]
-    resultado = subprocess.run(cmd, capture_output=True, shell=False)
-    if resultado.returncode != 0:
-        raise RuntimeError(f"ffmpeg falló al mejorar el audio: {resultado.stderr.decode()}")
+    wav_tmp = ruta.with_stem(ruta.stem + "_tmp").with_suffix(".wav")
+    wav_mejorado = ruta.with_stem(ruta.stem + "_mejorado_tmp").with_suffix(".wav")
+    log.info("Mejorando calidad del audio con DeepFilterNet: %s", ruta.name)
+
+    try:
+        cmd_to_wav = [
+            "ffmpeg", "-nostdin", "-y", "-i", str(ruta),
+            "-ar", "48000", "-ac", "1", str(wav_tmp),
+        ]
+        resultado = subprocess.run(cmd_to_wav, capture_output=True, shell=False)
+        if resultado.returncode != 0:
+            raise RuntimeError(f"ffmpeg falló al convertir a WAV: {resultado.stderr.decode()}")
+
+        model, df_state, _ = init_df()
+        audio, _ = load_audio(str(wav_tmp), sr=df_state.sr())
+        enhanced = enhance(model, df_state, audio, atten_lim_db=ATEN_LIM_DB)
+        save_audio(str(wav_mejorado), enhanced, df_state.sr())
+
+        cmd_to_mp3 = [
+            "ffmpeg", "-nostdin", "-y", "-i", str(wav_mejorado),
+            "-q:a", "2", str(destino),
+        ]
+        resultado = subprocess.run(cmd_to_mp3, capture_output=True, shell=False)
+        if resultado.returncode != 0:
+            raise RuntimeError(f"ffmpeg falló al convertir a MP3: {resultado.stderr.decode()}")
+    finally:
+        wav_tmp.unlink(missing_ok=True)
+        wav_mejorado.unlink(missing_ok=True)
+
     log.info("Audio mejorado guardado en: %s", destino)
     return destino
 
