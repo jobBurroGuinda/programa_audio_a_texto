@@ -20,6 +20,31 @@ def validar_ruta(audio_path: str) -> Path:
     return ruta
 
 
+FILTROS_VOZ = ",".join([
+    "highpass=f=80",
+    "lowpass=f=8000",
+    "afftdn=nf=-25",
+    "acompressor=threshold=0.05:ratio=4:attack=5:release=50",
+    "dynaudnorm=p=0.9:m=100",
+])
+
+
+def mejorar_audio(ruta: Path) -> Path:
+    destino = ruta.with_stem(ruta.stem + "_mejorado").with_suffix(".mp3")
+    cmd = [
+        "ffmpeg", "-nostdin", "-y",
+        "-i", str(ruta),
+        "-af", FILTROS_VOZ,
+        "-ar", "44100", "-ac", "1", "-q:a", "2",
+        str(destino),
+    ]
+    resultado = subprocess.run(cmd, capture_output=True, shell=False)
+    if resultado.returncode != 0:
+        raise RuntimeError(f"ffmpeg falló al mejorar el audio: {resultado.stderr.decode()}")
+    print(f"Audio mejorado guardado en: {destino}")
+    return destino
+
+
 def cargar_audio(ruta: Path, sample_rate: int = 16000) -> np.ndarray:
     cmd = [
         "ffmpeg", "-nostdin", "-threads", "0",
@@ -35,6 +60,8 @@ def cargar_audio(ruta: Path, sample_rate: int = 16000) -> np.ndarray:
 
 def transcribir(audio_path: str, formato: str = "txt", modelo: str = "base"):
     ruta = validar_ruta(audio_path)
+    print("Mejorando calidad del audio...")
+    ruta = mejorar_audio(ruta)
     audio = cargar_audio(ruta)
     model = WhisperModel(modelo, device="cpu", compute_type="int8")
     segments, info = model.transcribe(audio)
