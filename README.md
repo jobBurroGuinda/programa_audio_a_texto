@@ -83,31 +83,32 @@ Esto instala:
 
 ## Uso
 
-Activa el entorno virtual y asegúrate de que Ollama esté corriendo:
+Asegúrate de que Ollama esté corriendo antes de ejecutar:
 ```bash
-venv\Scripts\activate
 ollama serve
 ```
 
-> Si cerraste la terminal, siempre debes activar el entorno virtual antes de ejecutar el script:
-> ```bash
-> cd C:\ruta\al\proyecto\programa_audio_a_texto
-> venv\Scripts\activate
-> ```
+Hay dos formas de ejecutar el script:
 
-### Transcribir a `.txt` (por defecto)
+### Opción A: Activando el entorno virtual
 ```bash
+venv\Scripts\activate
 python transcribir.py "C:\ruta\al\audio.ogg"
+```
+
+### Opción B: Sin activar el entorno virtual (todo en una línea)
+```bash
+venv\Scripts\python transcribir.py "C:\ruta\al\audio.ogg"
 ```
 
 ### Transcribir a `.md`
 ```bash
-python transcribir.py "C:\ruta\al\audio.ogg" --formato md
+venv\Scripts\python transcribir.py "C:\ruta\al\audio.ogg" --formato md
 ```
 
 ### Usar un modelo Whisper diferente
 ```bash
-python transcribir.py "C:\ruta\al\audio.ogg" --formato md --modelo small
+venv\Scripts\python transcribir.py "C:\ruta\al\audio.ogg" --formato md --modelo small
 ```
 
 El archivo de salida se guarda en la **misma carpeta que el audio**, con el mismo nombre y la extensión elegida.
